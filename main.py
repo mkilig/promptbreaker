@@ -27,8 +27,9 @@ def index():
     )
 
 
-@app.route("/api/attacks/<category>")
-def api_attacks(category):
+@app.route("/api/attacks")
+def api_attacks():
+    category = request.args.get("category", "")
     return jsonify(get_attacks_by_category(category))
 
 

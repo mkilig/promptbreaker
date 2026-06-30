@@ -625,7 +625,7 @@ async function loadAttacks() {
   const list = document.getElementById('attack-list');
   list.innerHTML = '<div style="color:var(--muted);font-size:13px;">Loading...</div>';
 
-  const res = await fetch(`/api/attacks/${encodeURIComponent(cat)}`);
+  const res = await fetch(`/api/attacks?category=${encodeURIComponent(cat)}`);
   const data = await res.json();
 
   list.innerHTML = data.map((a, i) => `
