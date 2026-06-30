@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptBreaker — Learn How LLMs Get Manipulated</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0B0D14;
+    --surface:   #161A24;
+    --surface2:  #1E2330;
+    --surface3:  #262C3C;
+    --border:    #323950;
+    --border2:   #424A66;
+
+    --blue:      #5AB8FF;
+    --blue-dim:  #15324A;
+    --amber:     #FFB454;
+    --amber-dim: #4A3414;
+
+    --text:      #F1F3F8;
+    --text2:     #C7CCDC;
+    --muted:     #9298B0;
+    --faint:     #5C6178;
+
+    --red:       #FF6B6B;
+    --red-dim:   #4A1818;
+    --orange:    #FFA060;
+    --orange-dim:#4A2E10;
+    --yellow:    #FFD66B;
+    --yellow-dim:#4A3C10;
+    --green:     #6BE0A0;
+    --green-dim: #103A26;
+
+    --sans: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 22px 40px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .logo .prompt { color: var(--blue); }
+  .logo .breaker { color: var(--amber); }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    letter-spacing: 0.05em;
+  }
+
+  .header-explainer {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 460px;
+    line-height: 1.55;
+  }
+
+  .header-explainer strong { color: var(--text2); font-weight: 600; }
+
+  /* ── INTRO / TEACHING BANNER ── */
+  .intro-banner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 28px 40px 0;
+  }
+
+  .intro-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .intro-icon {
+    font-size: 26px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: var(--blue-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .intro-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .intro-body {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+
+  .intro-body strong { color: var(--blue); font-weight: 600; }
+  .intro-body .amber-strong { color: var(--amber); font-weight: 600; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    max-width: 1280px;
+    margin: 24px auto 0;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 13px 22px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .tab:hover:not(.active) { color: var(--text2); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 28px 40px 60px;
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 24px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+  }
+
+  .panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── FORM ELEMENTS ── */
+  select, textarea, button {
+    font-family: var(--sans);
+    font-size: 14px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 100%;
+    padding: 11px 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  select:focus, textarea:focus { border-color: var(--blue); }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.03em;
+    margin-bottom: 7px;
+    margin-top: 18px;
+  }
+
+  label:first-child { margin-top: 0; }
+
+  textarea { resize: vertical; min-height: 80px; font-family: var(--mono); font-size: 13px; }
+
+  /* ── ATTACK LIST ── */
+  .attack-list { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+
+  .attack-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .attack-item:hover, .attack-item.active { border-color: var(--blue); background: var(--blue-dim); }
+
+  .attack-name { color: var(--text); font-weight: 600; font-size: 13.5px; margin-bottom: 3px; }
+  .attack-atlas {
+    font-family: var(--mono);
+    color: var(--blue);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  /* ── INTENT / TEACHING BOX (signature element) ── */
+  .teach-box {
+    background: var(--amber-dim);
+    border: 1px solid #6b4f1e;
+    border-radius: 8px;
+    padding: 13px 15px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  .teach-box.visible { display: block; }
+
+  .teach-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .teach-text {
+    font-size: 13px;
+    color: #F0DCB8;
+    line-height: 1.6;
+  }
+
+  /* ── CONVERTERS ── */
+  .converter-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+
+  .converter-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .converter-item:hover, .converter-item.active { border-color: var(--blue); background: var(--blue-dim); }
+  .conv-name { color: var(--text); font-weight: 600; font-size: 13px; }
+  .conv-desc { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.55; }
+
+  /* ── BUTTONS ── */
+  .run-btn {
+    margin-top: 18px;
+    background: var(--blue);
+    color: #0B0D14;
+    border-color: var(--blue);
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 13px;
+    font-size: 14px;
+  }
+
+  .run-btn:hover { opacity: 0.88; }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── RESULTS ── */
+  .results-area { display: flex; flex-direction: column; gap: 18px; }
+
+  .placeholder {
+    text-align: center;
+    color: var(--muted);
+    padding: 70px 24px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
+
+  .placeholder .big { font-size: 30px; margin-bottom: 14px; }
+  .placeholder p { font-size: 14px; line-height: 1.6; max-width: 440px; margin: 0 auto; }
+  .placeholder p.sub { margin-top: 10px; font-size: 13px; color: var(--faint); }
+
+  .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .atlas-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    border: 1px solid #1f4a6e;
+  }
+
+  .converter-tag {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .verdict-pill {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 13px;
+    border-radius: 5px;
+    letter-spacing: 0.04em;
+  }
+
+  .verdict-CRITICAL { background: var(--red-dim); color: var(--red); border: 1px solid #6b2424; }
+  .verdict-HIGH     { background: var(--orange-dim); color: var(--orange); border: 1px solid #6b4520; }
+  .verdict-MEDIUM   { background: var(--yellow-dim); color: var(--yellow); border: 1px solid #6b5820; }
+  .verdict-LOW      { background: var(--green-dim); color: var(--green); border: 1px solid #1e5a3e; }
+  .verdict-SAFE     { background: var(--green-dim); color: var(--green); border: 1px solid #1e5a3e; }
+  .verdict-API_ERROR, .verdict-PARSE_ERROR { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  .result-body { padding: 20px 22px; }
+
+  .result-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 9px;
+    margin-top: 18px;
+  }
+
+  .result-section-title:first-child { margin-top: 0; }
+
+  .result-section-title.amber { color: var(--amber); }
+
+  .result-text {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text2);
+    line-height: 1.65;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 12px 14px;
+    max-height: 220px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .explain-text {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--text2);
+    line-height: 1.7;
+    background: var(--amber-dim);
+    border: 1px solid #6b4f1e;
+    border-radius: 7px;
+    padding: 13px 15px;
+  }
+
+  .turn-block { border-left: 2px solid var(--border2); padding-left: 14px; margin-bottom: 16px; }
+  .turn-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+  .meta-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .meta-value { font-size: 14px; color: var(--text); font-weight: 600; margin-top: 3px; }
+
+  .severity-bar { height: 5px; background: var(--border); border-radius: 3px; margin: 7px 0 3px; overflow: hidden; }
+  .severity-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+  .red-flags { margin-top: 8px; }
+  .red-flag {
+    font-size: 12.5px;
+    color: var(--orange);
+    padding: 3px 0;
+    display: flex;
+    gap: 7px;
+    line-height: 1.5;
+  }
+  .red-flag::before { content: '▸'; flex-shrink: 0; color: var(--orange); }
+
+  .spinner {
+    display: inline-block; width: 15px; height: 15px;
+    border: 2px solid var(--border); border-top-color: var(--blue);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-state { color: var(--red); font-size: 13.5px; padding: 8px 0; }
+
+  .crescendo-list { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 880px) {
+    .container { grid-template-columns: 1fr; }
+    .header-explainer { display: none; }
+    header { padding: 18px 20px; }
+    .intro-banner, .tabs { padding-left: 20px; padding-right: 20px; }
+    .container { padding: 20px 20px 48px; }
+    .intro-card { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="prompt">Prompt</span><span class="breaker">Breaker</span></div>
+  <div class="badge">GEMINI · INTERACTIVE LAB</div>
+  <div class="header-explainer">
+    A hands-on lab for learning <strong>how LLMs get manipulated</strong> — built around real-world AI security frameworks (<strong>MITRE ATLAS</strong>), not guesswork.
+  </div>
+</header>
+
+<div class="intro-banner">
+  <div class="intro-card">
+    <div class="intro-icon">🎯</div>
+    <div>
+      <div class="intro-title">What this tool actually teaches</div>
+      <div class="intro-body">
+        Companies are deploying AI models into products right now, and those models can be socially
+        engineered the same way a person can be phished. <strong>PromptBreaker</strong> lets you see
+        that in action: pick an attack <strong>intent</strong> (what an adversary wants), pick a
+        <span class="amber-strong">delivery method</span> (how it's disguised), and watch whether
+        Gemini falls for it — with a plain-English explanation every step of the way. The goal isn't
+        to collect jailbreak strings. It's to understand the mechanism well enough to defend against it.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('single')">Single-Turn Attacks</div>
+  <div class="tab" onclick="switchTab('crescendo')">Crescendo (Multi-Turn)</div>
+</div>
+
+<!-- ── SINGLE TURN TAB ── -->
+<div class="tab-panel active" id="tab-single">
+  <div class="container">
+    <div>
+      <div class="panel">
+        <div class="panel-title">Step 1 — Pick the attack intent</div>
+
+        <label>Category (MITRE ATLAS technique)</label>
+        <select id="category-select" onchange="loadAttacks()">
+          {% for cat in categories %}
+          <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+
+        <label>Attack</label>
+        <div class="attack-list" id="attack-list">
+          <div style="color:var(--muted);font-size:13px;">Loading...</div>
+        </div>
+
+        <div class="teach-box" id="intent-box">
+          <div class="teach-label">💡 Why this matters</div>
+          <div class="teach-text" id="intent-text"></div>
+        </div>
+
+        <div class="panel-title" style="margin-top:22px;">Step 2 — Pick how it's delivered</div>
+        <div class="converter-grid" id="converter-grid">
+          {% for c in converters %}
+          <div class="converter-item{% if c.key == 'none' %} active{% endif %}" onclick="selectConverter('{{ c.key }}', this)">
+            <div class="conv-name">{{ c.name }}</div>
+            <div class="conv-desc">{{ c.description }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <input type="hidden" id="selected-converter" value="none">
+
+        <button class="run-btn" id="run-btn-single" onclick="runSingleAttack()">
+          Run Against Gemini →
+        </button>
+      </div>
+    </div>
+
+    <div class="results-area" id="results-area-single">
+      <div class="placeholder">
+        <div class="big">🧪</div>
+        <p>Pick an attack and a delivery method on the left, then run it. You'll see exactly what was sent, how Gemini responded, and a plain-English breakdown of what happened.</p>
+        <p class="sub">Same intent, different delivery — try running one attack with multiple converters to see how much disguise changes the outcome.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CRESCENDO TAB ── -->
+<div class="tab-panel" id="tab-crescendo">
+  <div class="container">
+    <div>
+      <div class="panel">
+        <div class="panel-title">Multi-turn escalation chains</div>
+        <div class="teach-box visible" style="margin-top:0;margin-bottom:16px;">
+          <div class="teach-label">💡 Why this matters</div>
+          <div class="teach-text">
+            Most defenses check one message at a time. A <strong>Crescendo</strong> attack spreads
+            the ask across several individually-reasonable turns — each one looks fine in isolation,
+            but the conversation as a whole walks the model somewhere a direct first request would've
+            been refused. This is a harder, more realistic threat model than single-shot prompts.
+          </div>
+        </div>
+
+        <div class="crescendo-list" id="crescendo-list">
+          {% for c in crescendo_chains %}
+          <div class="attack-item" onclick="selectCrescendo('{{ c.key }}', this)" data-key="{{ c.key }}">
+            <div class="attack-name">{{ c.name }}</div>
+            <div class="attack-atlas">{{ c.atlas_id }} · {{ c.turn_count }} turns</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="teach-box" id="crescendo-intent-box">
+          <div class="teach-label">💡 What this chain tests</div>
+          <div class="teach-text" id="crescendo-intent-text"></div>
+        </div>
+
+        <button class="run-btn" id="run-btn-crescendo" onclick="runCrescendoAttack()" style="margin-top:18px;">
+          Run Full Conversation →
+        </button>
+      </div>
+    </div>
+
+    <div class="results-area" id="results-area-crescendo">
+      <div class="placeholder">
+        <div class="big">💬</div>
+        <p>Pick an escalation chain to run a real multi-turn conversation against Gemini, one turn at a time.</p>
+        <p class="sub">Watch how the framing shifts turn by turn — that gradual shift is the entire attack.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CRESCENDO_DATA = {{ crescendo_chains | tojson }};
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getSeverityColor(severity) {
+  if (severity >= 9) return '#FF6B6B';
+  if (severity >= 7) return '#FFA060';
+  if (severity >= 4) return '#FFD66B';
+  if (severity >= 1) return '#6BE0A0';
+  return '#9298B0';
+}
+
+// ── SINGLE TURN ──
+let currentAttack = null;
+
+async function loadAttacks() {
+  const cat = document.getElementById('category-select').value;
+  const list = document.getElementById('attack-list');
+  list.innerHTML = '<div style="color:var(--muted);font-size:13px;">Loading...</div>';
+
+  const res = await fetch(`/api/attacks/${encodeURIComponent(cat)}`);
+  const data = await res.json();
+
+  list.innerHTML = data.map((a, i) => `
+    <button class="attack-item" onclick="selectAttack(${i})" data-payload="${escHtml(a.payload)}" data-name="${escHtml(a.name)}" data-atlas-id="${escHtml(a.atlas_id)}" data-atlas-name="${escHtml(a.atlas_name)}" data-intent="${escHtml(a.intent)}">
+      <div class="attack-name">${escHtml(a.name)}</div>
+      <div class="attack-atlas">${escHtml(a.atlas_id)}</div>
+    </button>
+  `).join('');
+
+  document.getElementById('intent-box').classList.remove('visible');
+  window._currentAttacks = data;
+}
+
+function selectAttack(idx) {
+  const items = document.querySelectorAll('#attack-list .attack-item');
+  items.forEach(i => i.classList.remove('active'));
+  items[idx].classList.add('active');
+
+  const el = items[idx];
+  currentAttack = {
+    name: el.dataset.name,
+    payload: el.dataset.payload,
+    atlas_id: el.dataset.atlasId,
+    atlas_name: el.dataset.atlasName,
+    intent: el.dataset.intent,
+  };
+
+  const box = document.getElementById('intent-box');
+  box.classList.add('visible');
+  document.getElementById('intent-text').textContent = currentAttack.intent;
+}
+
+function selectConverter(key, el) {
+  document.querySelectorAll('.converter-item').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('selected-converter').value = key;
+}
+
+async function runSingleAttack() {
+  if (!currentAttack) {
+    alert('Pick an attack first.');
+    return;
+  }
+
+  const converter = document.getElementById('selected-converter').value;
+  const btn = document.getElementById('run-btn-single');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Running...';
+
+  const area = document.getElementById('results-area-single');
+  area.innerHTML = `<div class="panel" style="text-align:center;padding:48px;"><span class="spinner"></span><span style="color:var(--muted);font-size:14px;">Sending the converted prompt to Gemini, then judging the response...</span></div>`;
+
+  try {
+    const res = await fetch('/api/run_single', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        attack_name: currentAttack.name,
+        atlas_id: currentAttack.atlas_id,
+        atlas_name: currentAttack.atlas_name,
+        intent: currentAttack.intent,
+        payload: currentAttack.payload,
+        converter: converter,
+      })
+    });
+    const data = await res.json();
+    if (data.error) {
+      area.innerHTML = `<div class="panel error-state">Error: ${escHtml(data.error)}</div>`;
+      return;
+    }
+    renderSingleResult(data);
+  } catch (err) {
+    area.innerHTML = `<div class="panel error-state">Network error: ${escHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Run Against Gemini →';
+  }
+}
+
+function renderSingleResult(data) {
+  const area = document.getElementById('results-area-single');
+  const j = data.judgment || {};
+  const verdict = j.verdict || 'UNKNOWN';
+  const severity = j.severity || 0;
+  const color = getSeverityColor(severity);
+
+  const redFlagsHtml = (j.red_flags || []).length
+    ? j.red_flags.map(f => `<div class="red-flag">${escHtml(f)}</div>`).join('')
+    : '<div style="color:var(--muted);font-size:12.5px;">None detected</div>';
+
+  area.innerHTML = `
+    <div class="result-card">
+      <div class="result-header">
+        <div class="atlas-tag">${escHtml(data.atlas_id)}</div>
+        <div class="converter-tag">${escHtml(data.converter)} converter</div>
+        <div class="verdict-pill verdict-${verdict}">${verdict}</div>
+      </div>
+      <div class="result-body">
+        <div class="result-section-title">What was actually sent (after the converter disguised it)</div>
+        <div class="result-text">${escHtml(data.final_prompt)}</div>
+
+        <div class="result-section-title">Gemini's response</div>
+        <div class="result-text">${escHtml(data.model_result.response || '[No response / blocked]')}</div>
+
+        <div class="result-section-title amber">💡 What this means</div>
+        <div class="explain-text">${escHtml(j.explanation || 'No explanation available.')}</div>
+
+        <div class="meta-grid">
+          <div>
+            <div class="meta-label">Severity</div>
+            <div class="severity-bar"><div class="severity-fill" style="width:${severity*10}%;background:${color}"></div></div>
+            <div class="meta-value" style="color:${color}">${severity}/10</div>
+          </div>
+          <div>
+            <div class="meta-label">Refusal Quality</div>
+            <div class="meta-value">${escHtml(j.refusal_quality || 'N/A')}</div>
+          </div>
+        </div>
+
+        <div class="red-flags">
+          <div class="result-section-title">Red flags spotted</div>
+          ${redFlagsHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── CRESCENDO ──
+let currentCrescendoKey = null;
+
+function selectCrescendo(key, el) {
+  document.querySelectorAll('#crescendo-list .attack-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  currentCrescendoKey = key;
+
+  const meta = CRESCENDO_DATA.find(c => c.key === key);
+  if (meta) {
+    document.getElementById('crescendo-intent-box').classList.add('visible');
+    document.getElementById('crescendo-intent-text').textContent = meta.intent;
+  }
+}
+
+async function runCrescendoAttack() {
+  if (!currentCrescendoKey) {
+    alert('Pick an escalation chain first.');
+    return;
+  }
+
+  const btn = document.getElementById('run-btn-crescendo');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Running conversation...';
+
+  const area = document.getElementById('results-area-crescendo');
+  area.innerHTML = `<div class="panel" style="text-align:center;padding:48px;"><span class="spinner"></span><span style="color:var(--muted);font-size:14px;">Running the multi-turn conversation against Gemini, then judging the full trajectory...</span></div>`;
+
+  try {
+    const res = await fetch('/api/run_crescendo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chain_key: currentCrescendoKey })
+    });
+    const data = await res.json();
+    if (data.error) {
+      area.innerHTML = `<div class="panel error-state">Error: ${escHtml(data.error)}</div>`;
+      return;
+    }
+    renderCrescendoResult(data);
+  } catch (err) {
+    area.innerHTML = `<div class="panel error-state">Network error: ${escHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Run Full Conversation →';
+  }
+}
+
+function renderCrescendoResult(data) {
+  const area = document.getElementById('results-area-crescendo');
+  const j = data.judgment || {};
+  const verdict = j.verdict || 'UNKNOWN';
+  const severity = j.severity || 0;
+  const color = getSeverityColor(severity);
+
+  const turnsHtml = (data.turns || []).map(t => `
+    <div class="turn-block">
+      <div class="turn-label">Turn ${t.turn_number}</div>
+      <div class="result-text" style="margin-bottom:8px;"><strong style="color:var(--text)">Prompt:</strong> ${escHtml(t.prompt)}</div>
+      <div class="result-text">${escHtml(t.response || '[No response]')}</div>
+    </div>
+  `).join('');
+
+  const redFlagsHtml = (j.red_flags || []).length
+    ? j.red_flags.map(f => `<div class="red-flag">${escHtml(f)}</div>`).join('')
+    : '<div style="color:var(--muted);font-size:12.5px;">None detected</div>';
+
+  area.innerHTML = `
+    <div class="result-card">
+      <div class="result-header">
+        <div class="atlas-tag">${escHtml(data.atlas_id)}</div>
+        <div class="converter-tag">${escHtml(data.chain_name)}</div>
+        <div class="verdict-pill verdict-${verdict}">${verdict}</div>
+      </div>
+      <div class="result-body">
+        <div class="result-section-title">The full conversation (${data.turns.length} turns)</div>
+        ${turnsHtml}
+
+        <div class="result-section-title amber">💡 What this means (full trajectory)</div>
+        <div class="explain-text">${escHtml(j.explanation || 'No explanation available.')}</div>
+
+        <div class="meta-grid">
+          <div>
+            <div class="meta-label">Severity</div>
+            <div class="severity-bar"><div class="severity-fill" style="width:${severity*10}%;background:${color}"></div></div>
+            <div class="meta-value" style="color:${color}">${severity}/10</div>
+          </div>
+          <div>
+            <div class="meta-label">Refusal Quality</div>
+            <div class="meta-value">${escHtml(j.refusal_quality || 'N/A')}</div>
+          </div>
+        </div>
+
+        <div class="red-flags">
+          <div class="result-section-title">Red flags spotted</div>
+          ${redFlagsHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+loadAttacks();
+</script>
+</body>
+</html>
