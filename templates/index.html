@@ -463,6 +463,49 @@
   @media (prefers-reduced-motion: reduce) {
     .spinner { animation: none; }
   }
+
+  /* ── FOOTER ── */
+  .site-footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .footer-by {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .footer-by a {
+    color: var(--blue);
+    text-decoration: none;
+  }
+
+  .footer-by a:hover { text-decoration: underline; }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+  }
+
+  .footer-link {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+
+  .footer-link:hover { color: var(--blue); }
 </style>
 </head>
 <body>
@@ -477,7 +520,7 @@
 
 <div class="intro-banner">
   <div class="intro-card">
-    <div class="intro-icon">🎯</div>
+    <div class="intro-icon">//</div>
     <div>
       <div class="intro-title">What this tool actually teaches</div>
       <div class="intro-body">
@@ -517,7 +560,7 @@
         </div>
 
         <div class="teach-box" id="intent-box">
-          <div class="teach-label">💡 Why this matters</div>
+          <div class="teach-label">Why this matters</div>
           <div class="teach-text" id="intent-text"></div>
         </div>
 
@@ -541,7 +584,7 @@
 
     <div class="results-area" id="results-area-single">
       <div class="placeholder">
-        <div class="big">🧪</div>
+        <div class="big">[ ]</div>
         <p>Pick an attack and a delivery method on the left, then run it. You'll see exactly what was sent, how Gemini responded, and a plain-English breakdown of what happened.</p>
         <p class="sub">Same intent, different delivery — try running one attack with multiple converters to see how much disguise changes the outcome.</p>
       </div>
@@ -556,7 +599,7 @@
       <div class="panel">
         <div class="panel-title">Multi-turn escalation chains</div>
         <div class="teach-box visible" style="margin-top:0;margin-bottom:16px;">
-          <div class="teach-label">💡 Why this matters</div>
+          <div class="teach-label">Why this matters</div>
           <div class="teach-text">
             Most defenses check one message at a time. A <strong>Crescendo</strong> attack spreads
             the ask across several individually-reasonable turns — each one looks fine in isolation,
@@ -575,7 +618,7 @@
         </div>
 
         <div class="teach-box" id="crescendo-intent-box">
-          <div class="teach-label">💡 What this chain tests</div>
+          <div class="teach-label">What this chain tests</div>
           <div class="teach-text" id="crescendo-intent-text"></div>
         </div>
 
@@ -587,7 +630,7 @@
 
     <div class="results-area" id="results-area-crescendo">
       <div class="placeholder">
-        <div class="big">💬</div>
+        <div class="big">[ ]</div>
         <p>Pick an escalation chain to run a real multi-turn conversation against Gemini, one turn at a time.</p>
         <p class="sub">Watch how the framing shifts turn by turn — that gradual shift is the entire attack.</p>
       </div>
@@ -730,7 +773,7 @@ function renderSingleResult(data) {
         <div class="result-section-title">Gemini's response</div>
         <div class="result-text">${escHtml(data.model_result.response || '[No response / blocked]')}</div>
 
-        <div class="result-section-title amber">💡 What this means</div>
+        <div class="result-section-title amber">What this means</div>
         <div class="explain-text">${escHtml(j.explanation || 'No explanation available.')}</div>
 
         <div class="meta-grid">
@@ -832,7 +875,7 @@ function renderCrescendoResult(data) {
         <div class="result-section-title">The full conversation (${data.turns.length} turns)</div>
         ${turnsHtml}
 
-        <div class="result-section-title amber">💡 What this means (full trajectory)</div>
+        <div class="result-section-title amber">What this means (full trajectory)</div>
         <div class="explain-text">${escHtml(j.explanation || 'No explanation available.')}</div>
 
         <div class="meta-grid">
@@ -858,5 +901,20 @@ function renderCrescendoResult(data) {
 
 loadAttacks();
 </script>
+
+<footer>
+  <div class="site-footer">
+    <div class="footer-by">
+      Built by <a href="https://kilic.tech" target="_blank">Muhammed Kilic</a> &mdash; AI security red-teaming lab
+    </div>
+    <div class="footer-links">
+      <a href="https://kilic.tech" target="_blank" class="footer-link">kilic.tech</a>
+      <a href="https://github.com/mkilig" target="_blank" class="footer-link">GitHub</a>
+      <a href="https://linkedin.com/in/mkilic" target="_blank" class="footer-link">LinkedIn</a>
+      <a href="mailto:mskilic98@gmail.com" class="footer-link">Contact</a>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>
